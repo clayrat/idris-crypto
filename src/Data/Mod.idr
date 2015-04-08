@@ -1,5 +1,8 @@
 module Data.Mod
 
+import Control.Algebra
+import Data.Fin
+
 %default total
 %access public
 
