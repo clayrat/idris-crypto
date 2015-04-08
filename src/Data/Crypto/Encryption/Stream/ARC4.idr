@@ -1,11 +1,12 @@
 module Data.Crypto.Encryption.Stream.ARC4
 
 import Control.Monad.State
-import Data.Mod
-
+import Data.Bits
 import Data.Crypto.Util
 import Data.Crypto.Encryption
 import Data.Crypto.Encryption.Stream
+import Data.Fin
+import Data.Mod
 
 %default total
 %access private
@@ -37,7 +38,7 @@ KSA {n=n} key =
       let ind = tightmod (cast i) (S (cast n))
       in let newJ = j + index i s + index ind key
          in let newS = (swap i (cast newJ) s)
-            in case strengthen (fS i) of
+            in case strengthen (FS i) of
               Left _ => newS
               Right newI => nextJ c newI newJ newS
     
@@ -49,8 +50,7 @@ PGRA i j S = let newI = i + 1
                       (modToBits (index (cast (index (cast newI) newS + index (cast newJ) newS)) newS))
                       (PGRA newI newJ newS)
 
-instance Cipher (AllegedRivestCipher4 n) where
-  bitsPerChunk = 8
+instance Cipher (AllegedRivestCipher4 n) 8 where
 
-instance StreamCipher (AllegedRivestCipher4 n) where
+instance StreamCipher (AllegedRivestCipher4 n) 8 where
   generateKeystream (ARC4 key) = PGRA 0 0 (KSA key)

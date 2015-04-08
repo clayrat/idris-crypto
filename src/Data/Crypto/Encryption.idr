@@ -6,21 +6,22 @@ import Data.Crypto.Util
 %default total
 %access public
 
-class Cipher c where
-  bitsPerChunk : Nat
+class Cipher c (bitsPerChunk : Nat) | c where
 
-class Cipher e => Encrypter e where
+class Cipher e bitsPerChunk => Encrypter e (bitsPerChunk : Nat) | e where
   encryptMessage : e -> List (Bits bitsPerChunk) -> List (Bits bitsPerChunk)
   
-class Cipher d => Decrypter d where
+class Cipher d bitsPerChunk => Decrypter d (bitsPerChunk : Nat) | d where
   decryptMessage : d -> List (Bits bitsPerChunk) -> List (Bits bitsPerChunk)
 
-encrypt : (Encrypter c, Serializable pt, Serializable ct) => c -> pt -> ct
+encrypt : (Encrypter c b, Serializable pt, Serializable ct) => c -> pt -> ct
 encrypt cipher = decode . encryptMessage cipher . encode
 
-decrypt : (Decrypter c, Serializable pt, Serializable ct) => c -> pt -> ct
+decrypt : (Decrypter c b, Serializable pt, Serializable ct) => c -> pt -> ct
 decrypt cipher = decode . decryptMessage cipher . encode
 
-class (Encrypter c, Decrypter c) => SymmetricCipher c where
+class (Encrypter c bitsPerChunk, Decrypter c bitsPerChunk) =>
+  SymmetricCipher c (bitsPerChunk : Nat) | c where
 
-class (Encrypter p, Decrypter v) => AsymmetricCipher p v where
+class (Encrypter p pb, Decrypter v vb) =>
+  AsymmetricCipher p v (pb : Nat) (vb : Nat) | p, v where

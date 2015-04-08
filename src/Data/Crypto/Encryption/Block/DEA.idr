@@ -1,24 +1,35 @@
-module Data.Crypto.Encryption.DEA
+module Data.Crypto.Encryption.Block.DEA
 
-import Control.Isomorphism
+-- import Control.Isomorphism
 import Data.Bits
-
 import Data.Crypto.Encryption
 import Data.Crypto.Encryption.Block
 import Data.Crypto.Util
+import Data.Fin
 
 %default total
 %access private
 
 -- utility functions
 
+trim : Bits (1 + n) -> Bits n
+trim b = truncate (shiftRightLogical (intToBits 1) b)
+
+bitsToFin : Bits n -> Fin (power 2 n)
+-- bitsToFin {n=Z}   _ = FZ
+-- bitsToFin {n=S _} b = let x = FS (FS FZ) * (bitsToFin (trim b))
+--                       in if (b `and` (intToBits 1)) == (intToBits 0)
+--                          then x
+--                          else FS x
+-- bitsToFin {n=n} bits = fromMaybe (replace ((powerSuccPowerLeft 2 n)) FZ) (integerToFin (bitsToInt bits) (power 2 n))
+
 -- Plenty of places in the 3DES spec use 1-based indexes, where we would like
 -- 0-based indexes. So we embed the same numbers from the spec (for easy
 -- eyeball-checking), then use this to correct the difference.
 offByOne : Vect m (Fin (S (S n))) -> Vect m (Fin (S n))
 offByOne = map (\x => case x of
-                   fZ   => fZ
-                   fS y => y)
+                   FZ   => FZ
+                   FS y => y)
 
 selectBits : Vect m (Fin n) -> Bits n -> Bits m
 selectBits positions input = foldl (\acc, b => shiftLeft acc (intToBits 1) `and` b)
@@ -62,9 +73,9 @@ E = selectBits (offByOne [32,  1,  2,  3,  4,  5,
 P : Bits 32 -> Bits 32
 P = selectBits (offByOne [16,  7, 20, 21,
                           29, 12, 28, 17,
-                          1, 15, 23, 26,
-                          5, 18, 31, 10,
-                          2,  8, 24, 14,
+                           1, 15, 23, 26,
+                           5, 18, 31, 10,
+                           2,  8, 24, 14,
                           32, 27,  3,  9,
                           19, 13, 30,  6,
                           22, 11,  4, 25])
@@ -157,8 +168,6 @@ KS key = map PC2
                           (PC1 key)
                           [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]))
  
-instance BlockCipher DataEncryptionAlgorithm where
-  bitsPerBlock = 64
-  maximumBlocks = 0
+instance BlockCipher DataEncryptionAlgorithm 64 0 where
   encryptBlock (DEA key) block = centralDEA block (KS key)
   decryptBlock (DEA key) block = centralDEA block (reverse (KS key))

@@ -2,6 +2,7 @@ module Data.Crypto.Encryption.TDEA
 
 import Data.Crypto.Encryption.Block
 import Data.Crypto.Encryption.Block.DEA
+import Data.Fin
 
 %default total
 %access private
@@ -19,9 +20,7 @@ data TripleDataEncryptionAlogrithm : Fin2 -> Type where
   TDEA1 : TDEA1Key -> TripleDataEncryptionAlgorithm 0
   TDEA2 : TDEA2Key -> TripleDataEncryptionAlgorithm 1
 
-instance BlockCipher (TripleDataEncryptionAlgorithm 0) where
-  bitsPerBlock = 64
-  maximumBlocks = power 2 32
+instance BlockCipher (TripleDataEncryptionAlgorithm 0) 64 (power 2 32) where
   encryptBlock (TDEA1 key) block =
     encryptBlock (DEA (index 2 key))
                  (decryptBlock (DEA (index 1 key))
@@ -31,8 +30,6 @@ instance BlockCipher (TripleDataEncryptionAlgorithm 0) where
                  (encryptBlock (DEA (index 1 key))
                                (decryptBlock (DEA (index 2 key)) block))
 
-instance BlockCipher (TripleDataEncryptionAlgorithm 1) where
-  bitsPerBlock = 64
-  maximumBlocks = power 2 20
+instance BlockCipher (TripleDataEncryptionAlgorithm 1) 64 (power 2 20) where
   encryptBlock (TDEA2 key) = encryptBlock (TDEA1 (key ++ [index 0 key]))
   decryptBlock (TDEA2 key) = decryptBlock (TDEA1 (key ++ [index 0 key]))

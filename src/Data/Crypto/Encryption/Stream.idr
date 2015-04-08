@@ -1,43 +1,47 @@
 module Data.Crypto.Encryption.Stream
 
+import Data.Bits
 import Data.Crypto.Util
 import Data.Crypto.Encryption
+import Data.Vect
 
 %default total
 %access public
 
-class Cipher k => StreamCipher k where
+class Cipher k bitsPerChunk => StreamCipher k (bitsPerChunk : Nat) | k where
   generateKeystream : k -> Stream (Bits bitsPerChunk)
 
 -- Stream ciphers are automorphic, so the encryption and decryption algorithms
 -- are identical. I don’t know when that would ever be useful, but if it is, you
 -- can just use `confound*` to handle whichever way you want.
 
-confoundStream :
-  StreamCipher k => k -> Stream (Bits bitsPerChunk) -> Stream (Bits bitsPerChunk)
+confoundStream : StreamCipher k b => k -> Stream (Bits b) -> Stream (Bits b)
 confoundStream key = Prelude.Stream.zipWith xor (generateKeystream key)
-encryptStream :
-  StreamCipher k => k -> Stream (Bits bitsPerChunk) -> Stream (Bits bitsPerChunk)
+
+encryptStream : StreamCipher k b => k -> Stream (Bits b) -> Stream (Bits b)
 encryptStream = confoundStream
-decryptStream :
-  StreamCipher k => k -> Stream (Bits bitsPerChunk) -> Stream (Bits bitsPerChunk)
+
+decryptStream : StreamCipher k b => k -> Stream (Bits b) -> Stream (Bits b)
 decryptStream = confoundStream
 
-confoundMessage :
-  StreamCipher k => k -> List (Bits bitsPerChunk) -> List (Bits bitsPerChunk)
-confoundMessage key message =
-  toList (Prelude.Vect.zipWith xor
-                               (Prelude.Stream.take (length message)
-                                                    (generateKeystream key))
-                               (fromList message))
+takeV : (n : Nat) -> (xs : Stream a) -> Vect n a
+takeV Z     _         = []
+takeV (S n) (x :: xs) = x :: (takeV n xs)
 
-instance StreamCipher sc => Encrypter sc where
+confoundMessage : StreamCipher k b => k -> List (Bits b) -> List (Bits b)
+confoundMessage key message =
+  toList (zipWith xor
+                  (takeV (length message) (generateKeystream key))
+                  (fromList message))
+
+instance StreamCipher sc b => Encrypter sc b where
   encryptMessage = confoundMessage
 
-instance StreamCipher sc => Decrypter sc where
+instance StreamCipher sc b => Decrypter sc b where
   decryptMessage = confoundMessage
 
-instance (StreamCipher sc, Encrypter sc, Decrypter sc) => SymmetricCipher sc where
+instance (StreamCipher sc b, Encrypter sc b, Decrypter sc b) =>
+  SymmetricCipher sc b where
 
-confound : (StreamCipher k, Serializable i, Serializable o) => k -> i -> o
+confound : (StreamCipher k b, Serializable i, Serializable o) => k -> i -> o
 confound key = decode . confoundMessage key . encode

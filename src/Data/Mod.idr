@@ -33,7 +33,7 @@ natToMod {n=(S m)} x =
   MkMod (finMod (x `mod` (S (S m)))) where
     finMod : Nat -> Fin (S k)
     finMod Z = FZ
-    finMod {k=S k} (S k) = FS (finMod k)
+    finMod {k=S k} (S x) = FS (finMod x)
     finMod _ = FZ
 natToMod _ = MkMod FZ
 

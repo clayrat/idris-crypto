@@ -1,7 +1,6 @@
 module Data.Crypto.MAC.HMAC
 
 import Data.Bits
-
 import Data.Crypto.Hash
 import Data.Crypto.MAC
 import Data.Crypto.Util
